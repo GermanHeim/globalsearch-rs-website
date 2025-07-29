@@ -1,0 +1,107 @@
+---
+title: Local Solvers
+description: Local solvers are algorithms that find the local minimum of a function.
+---
+
+import Latex from "../../components/Latex.astro";
+
+Local solvers are algorithms that find the local minimum of a function. In `globalsearch-rs`, we use
+the [`argmin`](https://github.com/argmin-rs/argmin) crate to provide local solvers. The local
+solvers are used to refine the points in the reference set.
+
+## Available Local Solvers
+
+The following local solvers are available in `globalsearch-rs`:
+
+### L-BFGS
+
+The L-BFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno) algorithm is a quasi-Newton method that
+is used to find the local minimum of a function. It is a popular algorithm for large-scale
+optimization problems and is known for its efficiency and effectiveness.
+
+This algorithm requires that the `Problem` struct implements the `objective` and `gradient` methods.
+It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
+to find the step size for the L-BFGS algorithm.
+
+#### Parameters for L-BFGS
+
+- `max_iter`: The maximum number of iterations to perform. Default is 300.
+- `tolerance_grad`: The gradient tolerance. Default is `sqrt(EPSILON)`.
+- `tolerance_cost`: The cost tolerance. Default is `EPSILON`.
+- `history_size`: The number of past updates to the position (<Latex formula="x" inline />) and
+  gradient (<Latex formula="\nabla f" inline />) that the algorithm stores and uses to approximate
+  the inverse Hessian matrix. Default is 10.
+- `l1_coefficient`: The L1 regularization coefficient to penalize high-value coefficients using the
+  Orthant-Wise Limited-memory Quasi-Newton (OWL-QN) method. Default is None.
+- `line_search_params`: The line search parameters. Default is `LineSearchParams::default()`.
+
+### Nelder-Mead
+
+The Nelder-Mead algorithm is a simplex-based optimization method that is used to find the local
+minimum of a function. It is a derivative-free optimization method that is suitable for non-smooth
+functions. The algorithm is simple to implement and is widely used in practice.
+
+This algorithm requires that the `Problem` struct implements the `objective` method.
+
+#### Parameters for Nelder-Mead
+
+- `simplex_delta`: The initial simplex size. Default is 0.1.
+- `sd_tolerance`: The sample standard deviation tolerance. Default is `EPSILON`.
+- `max_iter`: The maximum number of iterations to perform. Default is 300.
+- `alpha`: The reflection coefficient. Default is 1.0.
+- `gamma`: The expansion coefficient. Default is 2.0.
+- `rho`: The contraction coefficient. Default is 0.5.
+- `sigma`: The shrinkage coefficient. Default is 0.5.
+
+### Steepest Descent
+
+The Steepest Descent algorithm is a first-order optimization method that is used to find the local
+minimum of a function. It is based on the idea of moving in the direction of the steepest descent of
+the function. The algorithm is simple to implement and is suitable for smooth functions.
+
+This algorithm requires that the `Problem` struct implements the `objective` and `gradient` methods.
+
+It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
+to find the step size for the Steepest Descent algorithm.
+
+#### Parameters for Steepest Descent
+
+- `max_iter`: The maximum number of iterations to perform. Default is 300.
+- `line_search_params`: The line search parameters. Default is `LineSearchParams::default()`.
+
+### Trust Region
+
+The Trust Region algorithm is a popular optimization method that is used to find the local minimum
+of a function. It is based on the idea of approximating the objective function within a local region
+and iteratively refining the solution. The algorithm is particularly effective for non-convex
+functions and is widely used in practice.
+
+This algorithm requires that the `Problem` struct implements the `objective`, `gradient`, and
+`hessian` methods.
+
+#### Parameters for Trust Region
+
+- `trust_region_radius_method`: Trust Region Radius method. Default is `Cauchy`.
+- `radius`: The initial trust region radius. Default is 1.0.
+- `max_radius`: The maximum trust region radius. Default is 100.0.
+- `eta`: The trust region update parameter. Default is 0.125.
+
+### Newton-CG
+
+The Newton-CG (Newton-Conjugate Gradient) algorithm is a second-order optimization method that is
+used to find the local minimum of a function. It combines the Newton's method with the conjugate
+gradient method to efficiently handle large-scale optimization problems. The algorithm is
+particularly effective for non-linear optimization problems and is widely used in practice.
+
+This algorithm requires that the `Problem` struct implements the `objective`, `gradient`, and
+`hessian` methods.
+
+It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
+to find the step size for the Steepest Descent algorithm.
+
+#### Parameters for Newton-CG
+
+- `max_iter`: The maximum number of iterations to perform. Default is 300.
+- `curvature_threshold`: The curvature threshold. Default is 0.0.
+- `tolerance`: The tolerance for the objective function. Default is `EPSILON`.
+- `line_search_params`: The line search parameters. Default is `LineSearchParams::default()`.
