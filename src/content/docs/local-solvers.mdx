@@ -13,11 +13,32 @@ solvers are used to refine the points in the reference set.
 
 The following local solvers are available in `globalsearch-rs`:
 
+- L-BFGS
+- Nelder-Mead
+- Steepest Descent
+- Trust Region
+- Newton-CG
+
+## Requirements Comparison
+
+Below is a comparison of the requirements for each local solver:
+
+| Solver           | Gradient | Hessian | Line Search | Notes                                 |
+| ---------------- | -------- | ------- | ----------- | ------------------------------------- |
+| L-BFGS           | Yes      | No      | Yes         | Optional L1-regularization via OWL-QN |
+| Nelder-Mead      | No       | No      | No          | Derivative-free                       |
+| Steepest Descent | Yes      | No      | Yes         | First-order derivatives               |
+| Trust Region     | Yes      | Yes     | No          | Uses trust-region radius updates      |
+| Newton-CG        | Yes      | Yes     | Yes         | Conjugate-gradient Newton steps       |
+
+## Detailed Overview of Each Solver
+
 ### L-BFGS
 
 The L-BFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno) algorithm is a quasi-Newton method that
 is used to find the local minimum of a function. It is a popular algorithm for large-scale
-optimization problems and is known for its efficiency and effectiveness.
+optimization problems and is known for its efficiency and effectiveness. It also provides L1
+regularization via the Orthant-Wise Limited-memory Quasi-Newton (OWL-QN) method.
 
 This algorithm requires that the `Problem` struct implements the `objective` and `gradient` methods.
 It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
@@ -25,15 +46,14 @@ to find the step size for the L-BFGS algorithm.
 
 #### Parameters for L-BFGS
 
-- `max_iter`: The maximum number of iterations to perform. Default is 300.
-- `tolerance_grad`: The gradient tolerance. Default is `sqrt(EPSILON)`.
-- `tolerance_cost`: The cost tolerance. Default is `EPSILON`.
-- `history_size`: The number of past updates to the position (<Latex formula="x" inline />) and
-  gradient (<Latex formula="\nabla f" inline />) that the algorithm stores and uses to approximate
-  the inverse Hessian matrix. Default is 10.
-- `l1_coefficient`: The L1 regularization coefficient to penalize high-value coefficients using the
-  Orthant-Wise Limited-memory Quasi-Newton (OWL-QN) method. Default is None.
-- `line_search_params`: The line search parameters. Default is `LineSearchParams::default()`.
+| Parameter            | Type               | Description                                                                                                                                                       | Default                       |
+| -------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `max_iter`           | `usize`            | The maximum number of iterations to perform.                                                                                                                      | `300`                         |
+| `tolerance_grad`     | `f64`              | The gradient tolerance.                                                                                                                                           | `sqrt(EPSILON)`               |
+| `tolerance_cost`     | `f64`              | The cost tolerance.                                                                                                                                               | `EPSILON`                     |
+| `history_size`       | `usize`            | Number of past updates to the position (<Latex formula="x" inline />) and gradient (<Latex formula="\nabla f" inline />) used to approximate the inverse Hessian. | `10`                          |
+| `l1_coefficient`     | `Option<f64>`      | L1 regularization coefficient (OWL-QN) to penalize high-value coefficients.                                                                                       | `None`                        |
+| `line_search_params` | `LineSearchParams` | Line search parameters.                                                                                                                                           | `LineSearchParams::default()` |
 
 ### Nelder-Mead
 
@@ -45,13 +65,15 @@ This algorithm requires that the `Problem` struct implements the `objective` met
 
 #### Parameters for Nelder-Mead
 
-- `simplex_delta`: The initial simplex size. Default is 0.1.
-- `sd_tolerance`: The sample standard deviation tolerance. Default is `EPSILON`.
-- `max_iter`: The maximum number of iterations to perform. Default is 300.
-- `alpha`: The reflection coefficient. Default is 1.0.
-- `gamma`: The expansion coefficient. Default is 2.0.
-- `rho`: The contraction coefficient. Default is 0.5.
-- `sigma`: The shrinkage coefficient. Default is 0.5.
+| Parameter       | Type    | Description                                             | Default   |
+| --------------- | ------- | ------------------------------------------------------- | --------- |
+| `simplex_delta` | `f64`   | Step size for generating the simplex from a given point | `0.1`     |
+| `sd_tolerance`  | `f64`   | Sample standard deviation tolerance                     | `EPSILON` |
+| `max_iter`      | `usize` | Maximum number of iterations                            | `300`     |
+| `alpha`         | `f64`   | Reflection coefficient                                  | `1.0`     |
+| `gamma`         | `f64`   | Expansion coefficient                                   | `2.0`     |
+| `rho`           | `f64`   | Contraction coefficient                                 | `0.5`     |
+| `sigma`         | `f64`   | Shrinkage coefficient                                   | `0.5`     |
 
 ### Steepest Descent
 
@@ -66,8 +88,10 @@ to find the step size for the Steepest Descent algorithm.
 
 #### Parameters for Steepest Descent
 
-- `max_iter`: The maximum number of iterations to perform. Default is 300.
-- `line_search_params`: The line search parameters. Default is `LineSearchParams::default()`.
+| Parameter            | Type               | Description                  | Default                       |
+| -------------------- | ------------------ | ---------------------------- | ----------------------------- |
+| `max_iter`           | `usize`            | Maximum number of iterations | `300`                         |
+| `line_search_params` | `LineSearchParams` | Line search parameters       | `LineSearchParams::default()` |
 
 ### Trust Region
 
@@ -81,10 +105,12 @@ This algorithm requires that the `Problem` struct implements the `objective`, `g
 
 #### Parameters for Trust Region
 
-- `trust_region_radius_method`: Trust Region Radius method. Default is `Cauchy`.
-- `radius`: The initial trust region radius. Default is 1.0.
-- `max_radius`: The maximum trust region radius. Default is 100.0.
-- `eta`: The trust region update parameter. Default is 0.125.
+| Parameter                    | Type                      | Description                   | Default  |
+| ---------------------------- | ------------------------- | ----------------------------- | -------- |
+| `trust_region_radius_method` | `TrustRegionRadiusMethod` | Trust region radius method    | `Cauchy` |
+| `radius`                     | `f64`                     | Initial trust region radius   | `1.0`    |
+| `max_radius`                 | `f64`                     | Maximum trust region radius   | `100.0`  |
+| `eta`                        | `f64`                     | Trust region update parameter | `0.125`  |
 
 ### Newton-CG
 
@@ -97,11 +123,13 @@ This algorithm requires that the `Problem` struct implements the `objective`, `g
 `hessian` methods.
 
 It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
-to find the step size for the Steepest Descent algorithm.
+to find the step size for the Newton-CG algorithm.
 
 #### Parameters for Newton-CG
 
-- `max_iter`: The maximum number of iterations to perform. Default is 300.
-- `curvature_threshold`: The curvature threshold. Default is 0.0.
-- `tolerance`: The tolerance for the objective function. Default is `EPSILON`.
-- `line_search_params`: The line search parameters. Default is `LineSearchParams::default()`.
+| Parameter             | Type               | Description                          | Default                       |
+| --------------------- | ------------------ | ------------------------------------ | ----------------------------- |
+| `max_iter`            | `usize`            | Maximum number of iterations         | `300`                         |
+| `curvature_threshold` | `f64`              | Curvature threshold                  | `0.0`                         |
+| `tolerance`           | `f64`              | Tolerance for the objective function | `EPSILON`                     |
+| `line_search_params`  | `LineSearchParams` | Line search parameters               | `LineSearchParams::default()` |

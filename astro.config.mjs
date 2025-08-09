@@ -91,6 +91,10 @@ export default defineConfig({
               link: "/rust/feature-flags/",
             },
             {
+              label: "🦀 Checkpointing",
+              link: "/rust/checkpointing/",
+            },
+            {
               label: "Examples",
               collapsed: true,
               items: [
@@ -106,6 +110,10 @@ export default defineConfig({
           label: "🐍 Python",
           collapsed: false,
           items: [
+            {
+              label: "🐍 Comparison with Rust",
+              link: "/python/comparison-with-rust/",
+            },
             {
               label: "🐍 Installation",
               link: "/python/installation/",
