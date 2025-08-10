@@ -34,6 +34,9 @@ to solve the local optimization problems. We currently support the following loc
 Support for using constrained solvers is planned when the `argmin` crate supports it. See
 [argmin's issue #137](https://github.com/argmin-rs/argmin/issues/137) for more information.
 
+Since unconstrained solvers can return solutions outside of variables bounds, we provide a function 
+`exclude_out_of_bounds` to filter solutions out of bounds.
+
 ## Evaluation of the reference set
 
 In MATLAB's `GlobalSearch`, the reference set contains `NumTrialPoints` points. However, the number

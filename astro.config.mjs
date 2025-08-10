@@ -123,8 +123,8 @@ export default defineConfig({
               collapsed: true,
               items: [
                 {
-                  label: "Six-Hump Camel Function",
-                  link: "/tutorials/",
+                  label: "🐍 Automatic Differentiation (JAX)",
+                  link: "/python/examples/automatic_differentiation_jax",
                 },
               ],
             },
