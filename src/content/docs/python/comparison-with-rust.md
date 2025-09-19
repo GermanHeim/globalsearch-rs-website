@@ -33,4 +33,5 @@ are some key differences between the two:
 5. **Limitations in terms of features**: `PyGlobalSearch` does not expose all the features of
    `globalsearch-rs`, potentially limiting advanced users who require specific functionality. As of
    now, the focus is on providing a core set of tools that are most relevant for Python users. We
-   currently don't support parallelism of stage 1 using rayon nor checkpointing (no feature flags).
+   currently don't support parallelism of stage 1 using rayon nor checkpointing (no feature flags). Also,
+   for the COBYLA local solver, we only support a maximum of 1000 constraints.

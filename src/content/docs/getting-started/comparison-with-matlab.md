@@ -21,20 +21,25 @@ This function supports using five different algorithms to solve the optimization
 - `sqp-legacy`
 - `active-set`
 
-However, `globalsearch-rs` uses the [`argmin`](https://github.com/argmin-rs/argmin) crate to solve
-the local optimization problems. We use the provided **unconstrained** nonlinear programming solvers
-to solve the local optimization problems. We currently support the following local solvers:
+However, `globalsearch-rs` uses the [`cobyla`](https://github.com/relf/cobyla) and the [`argmin`](https://github.com/argmin-rs/argmin) crate to solve
+the local optimization problems.
 
-- `LBFGS` (default)
+COBYLA is the only algorithm that supports constraints and bounds, while the other algorithms are
+unconstrained.
+
+However, we also provide support for the **unconstrained** nonlinear programming solvers from the `argmin` crate to solve the local optimization problems. We currently support the following local solvers:
+
+- `COBYLA` (default)
+- `LBFGS`
 - `NelderMead`
 - `SteepestDescent`
 - `TrustRegion`
 - `NewtonCG`
 
-Support for using constrained solvers is planned when the `argmin` crate supports it. See
+Support for more constrained solvers is planned when the `argmin` crate supports it. See
 [argmin's issue #137](https://github.com/argmin-rs/argmin/issues/137) for more information.
 
-Since unconstrained solvers can return solutions outside of variables bounds, we provide a function 
+Since unconstrained solvers can return solutions outside of variables bounds, we provide a function
 `exclude_out_of_bounds` to filter solutions out of bounds.
 
 ## Evaluation of the reference set

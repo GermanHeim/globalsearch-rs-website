@@ -5,14 +5,23 @@ description: Local solvers are algorithms that find the local minimum of a funct
 
 import Latex from "../../components/Latex.astro";
 
-Local solvers are algorithms that find the local minimum of a function. In `globalsearch-rs`, we use
-the [`argmin`](https://github.com/argmin-rs/argmin) crate to provide local solvers. The local
+:::note[Bounds]
+The only local solver that supports constraints and bounds is COBYLA.
+This is the recommended local solver. 
+
+Other solvers can return solutions out of bounds.
+You can handle this by using the `exclude_out_of_bounds` option in the `OQNLP` struct.
+:::
+
+Local solvers are algorithms that find the local minimum of a function. In `globalsearch-rs`, we use the [`cobyla`](https://github.com/relf/cobyla)
+crate and the [`argmin`](https://github.com/argmin-rs/argmin) crate to provide local solvers. The local
 solvers are used to refine the points in the reference set.
 
 ## Available Local Solvers
 
 The following local solvers are available in `globalsearch-rs`:
 
+- COBYLA (default)
 - L-BFGS
 - Nelder-Mead
 - Steepest Descent
@@ -25,6 +34,7 @@ Below is a comparison of the requirements for each local solver:
 
 | Solver           | Gradient | Hessian | Line Search | Notes                                 |
 | ---------------- | -------- | ------- | ----------- | ------------------------------------- |
+| COBYLA           | No       | No      | No          | Derivative-free, constraints support  |
 | L-BFGS           | Yes      | No      | Yes         | Optional L1-regularization via OWL-QN |
 | Nelder-Mead      | No       | No      | No          | Derivative-free                       |
 | Steepest Descent | Yes      | No      | Yes         | First-order derivatives               |
@@ -32,6 +42,28 @@ Below is a comparison of the requirements for each local solver:
 | Newton-CG        | Yes      | Yes     | Yes         | Conjugate-gradient Newton steps       |
 
 ## Detailed Overview of Each Solver
+
+### COBYLA
+The COBYLA (Constrained Optimization BY Linear Approximation) algorithm is a derivative-free
+optimization method that is used to find the local minimum of a function. It is particularly useful
+for problems with nonlinear constraints. The algorithm works by iteratively constructing linear
+approximations of the objective function and constraints.
+This algorithm requires that the `Problem` struct implements the `objective` method. If the problem
+has constraints, the `Problem` struct must also implement the `constraints` method.
+
+COBYLA is the only local solver in `globalsearch-rs` that supports constraints and bounds.
+
+#### Parameters for COBYLA
+
+| Parameter          | Type    | Description                                      | Default        |
+| ------------------ | ------- | ------------------------------------------------ | -------------- |
+| `max_iter`         | `usize` | Maximum number of iterations                     | `300`          |
+| `initial_step_size`| `f64`   | Initial step size                                | `1.0`          |
+| `ftol_rel`         | `f64`   | Tolerance for the objective function (relative)  | `1e-6`         |
+| `ftol_abs`         | `f64`   | Tolerance for the objective function (absolute)  | `1e-8`         |
+| `xtol_rel`         | `f64`   | Tolerance for the solution (relative)            | `0` (Disabled) |
+| `xtol_abs`         | `f64`   | Tolerance for the solution (absolute)            | `0` (Disabled) |
+
 
 ### L-BFGS
 
