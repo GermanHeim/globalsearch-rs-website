@@ -22,8 +22,7 @@ starting points.
 
 ### Local Optimization (Exploitation)
 
-Each selected candidate is refined using a local NLP solver—provided by the
-[`argmin`](ttps://github.com/argmin-rs/argmin) crate—with optional gradient or Hessian information.
+Each selected candidate is refined using a local NLP solver—provided by the [`cobyla`](https://github.com/relf/cobyla) and [`argmin`](https://github.com/argmin-rs/argmin) crate—with optional gradient or Hessian information.
 These local optimizers aim to drive solutions towards local minima of your objective function.
 
 ### Multistart Coordination
