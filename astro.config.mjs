@@ -91,6 +91,10 @@ export default defineConfig({
               link: "/rust/feature-flags/",
             },
             {
+              label: "🦀 Running an Optimization Problem",
+              link: "/rust/running-an-optimization-problem/",
+            },
+            {
               label: "🦀 Checkpointing",
               link: "/rust/checkpointing/",
             },
@@ -117,6 +121,9 @@ export default defineConfig({
             {
               label: "🐍 Installation",
               link: "/python/installation/",
+            },
+            { label: "🐍 Running an Optimization Problem",
+              link: "/python/running-an-optimization-problem/",
             },
             {
               label: "Examples",
