@@ -56,8 +56,8 @@ In MATLAB's `GlobalSearch`, the variable bounds are specified using the `lb` and
 However, unbounded components have artificial bounds imposed, where `lb = -1e4 + 1` and
 `ub = 1e4 + 1` [^3].
 
-In `globalsearch-rs`, the variable bounds are specified using the `bounds` argument. The bounds are
-specified as vector of tuples, where each tuple contains the lower and upper bounds of each
+In `globalsearch-rs`, the variable bounds are specified using the `variable_bounds` argument. The bounds are
+specified as an `Array2` of `f64`, where each row contains the lower and upper bounds of each
 variable. Not specifying bounds for a variable is not supported, so the user must specify bounds for
 all the variables. This is to ensure that the user is aware of the bounds of the variables and
 selects them appropriately.
