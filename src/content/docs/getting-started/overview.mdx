@@ -58,7 +58,7 @@ tolerance of `1e-6` and an absolute tolerance of `1e-8`.
 
 ## Graphical Example
 
-In the following example, we optimize the well-known Six-Hump Camel Back function. The function is continuous, differentiable and non-convex. It is defined as follows [^1]:
+In the following example, we optimize the well-known Six-Hump Camel function. The function is continuous, differentiable and non-convex. It is defined as follows [^1]:
 
 export const f =
   "f(x_1, x_2) = (4 - 2.1 x_1^2 + \\frac{x_1^4}{3}) x_1^2 + x_1 x_2 + (-4 + 4 x_2^2) x_2^2";
@@ -91,7 +91,7 @@ The following plot shows the convergence of the best objective function value fo
 
 ![Convergence Plot](../figures/sixhumpcamel_convergence_analysis.svg)
 
-The Y-axis uses a symmetric logarithmic scale to better visualize the convergence behavior. The plot shows that the algorithm quickly finds a good solution and then improves it over time. The algorithm successfully finds both global minima of the Six-Hump Camel Back function.
+The Y-axis uses a symmetric logarithmic scale to better visualize the convergence behavior. The plot shows that the algorithm quickly finds a good solution and then improves it over time. The algorithm successfully finds both global minima of the Six-Hump Camel function.
 
 The algorithm was run on a Windows 10 machine using a Ryzen 5 5500 processor with 16 GB of RAM @ 3200 MHz, using rust 1.87.0 with the `rayon` feature and the `release` profile.
 
