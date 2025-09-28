@@ -147,7 +147,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl: "https://github.com/GermanHeim/globalsearch-rs/media/globalsearch-rs-website/",
+        baseUrl: "https://github.com/GermanHeim/globalsearch-rs-website/",
       },
     }),
     tailwind({
