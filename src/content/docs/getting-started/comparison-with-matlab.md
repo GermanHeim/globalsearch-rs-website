@@ -62,6 +62,13 @@ variable. Not specifying bounds for a variable is not supported, so the user mus
 all the variables. This is to ensure that the user is aware of the bounds of the variables and
 selects them appropriately.
 
+## Additional features
+
+`globalsearch-rs` provides additional features, including checkpointing and parallel execution in stage 1.
+For more information, see the [feature flags documentation](../../rust/feature-flags).
+
+These features are not available in the Python bindings.
+
 ## References
 
 [^1]:
