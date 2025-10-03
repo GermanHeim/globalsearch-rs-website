@@ -16,7 +16,7 @@ And then run `pip install -r requirements.txt`.
 Alternatively, you can add the dependency directly from the command line using
 `pip install pyglobalsearch`
 
-# uv
+## uv
 
 If you are using [uv](https://docs.astral.sh/uv/), you can add `pyglobalsearch` as a dependency it
 to your `pyproject.toml`:
