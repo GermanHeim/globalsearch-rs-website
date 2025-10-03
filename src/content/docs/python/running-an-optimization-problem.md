@@ -14,6 +14,7 @@ Make sure to install the `PyGlobalSearch` package. You can do this using pip:
 ```bash
 pip install pyglobalsearch
 ```
+
 You will also need `numpy` for handling arrays. If you don't have it installed, you can install it using pip:
 
 ```bash
