@@ -64,10 +64,10 @@ selects them appropriately.
 
 ## Additional features
 
-`globalsearch-rs` provides additional features, including checkpointing and parallel execution in stage 1.
+`globalsearch-rs` provides additional features, including checkpointing and parallel execution.
 For more information, see the [feature flags documentation](../../rust/feature-flags).
 
-These features are not available in the Python bindings.
+Checkpointing is not available in the Python bindings.
 
 ## References
 
