@@ -1,0 +1,288 @@
+---
+title: Catalytic Cracking Parameter Estimation
+description: Solve a parameter estimation problem for catalytic cracking of gas oil using ODE systems and global optimization
+---
+
+import Latex from "../../../../components/Latex.astro";
+
+This example demonstrates how to solve a complex parameter estimation problem involving ordinary differential equations (ODEs) using `globalsearch-rs`. The problem comes from COPS 2.0: Large-Scale Optimization Problems (Problem #21) [^1] and involves estimating reaction rate coefficients for the catalytic cracking of gas oil.
+
+## Problem Description
+
+### Physical Process
+
+Catalytic cracking is a key process in petroleum refining where heavy hydrocarbons (gas oil) are broken down into lighter, more valuable products (gas and other byproducts) using a catalyst. The process involves complex chemical reactions that can be modeled using a system of nonlinear ordinary differential equations.
+
+### Mathematical Model
+
+The catalytic cracking process is described by the following ODE system:
+
+<Latex formula="\frac{dy_1}{dt} = -(\theta_1 + \theta_3) \cdot y_1^2" />
+
+<Latex formula="\frac{dy_2}{dt} = \theta_1 \cdot y_1^2 - \theta_2 \cdot y_2" />
+
+Where:
+- <Latex formula="y_1(t)" inline />: concentration of gas oil at time <Latex formula="t" inline />
+- <Latex formula="y_2(t)" inline />: concentration of gas and byproducts at time <Latex formula="t" inline />
+- <Latex formula="\theta_1, \theta_2, \theta_3" inline />: reaction rate coefficients (parameters to estimate)
+
+**Initial Conditions:** <Latex formula="y_1(0) = 1.0, \quad y_2(0) = 0.0" inline />
+
+### Parameter Estimation Problem
+
+Given experimental observations at 21 time points from <Latex formula="t = 0.000" inline /> to <Latex formula="t = 0.950" inline />, we want to minimize the sum of squared residuals between the ODE solution and experimental data:
+
+<Latex formula="\min_{\theta} \sum_{i=1}^{21} \left[ (y_1^{model}(t_i) - y_1^{obs}(t_i))^2 + (y_2^{model}(t_i) - y_2^{obs}(t_i))^2 \right]" />
+
+Subject to: <Latex formula="\theta_1, \theta_2, \theta_3 > 0" inline /> (physical constraints)
+
+## Implementation Overview
+
+The implementation consists of several key components:
+
+### 1. Experimental Data Structure
+
+```rust
+#[derive(Debug, Clone)]
+struct ExperimentalData {
+    /// Time points at which observations were made (21 points from 0.000 to 0.950)
+    pub times: Vec<f64>,
+    /// Observations for gas oil concentration (y₁) at each time point
+    pub y1_observations: Vec<f64>,
+    /// Observations for gas/byproducts concentration (y₂) at each time point      
+    pub y2_observations: Vec<f64>,
+}
+```
+
+### 2. ODE System Implementation
+
+The example implements a custom 4th-order Runge-Kutta solver for numerical integration:
+
+```rust
+struct ODESolver {
+    state: ODEState,
+    time: f64,
+    step_size: f64,
+}
+
+impl ODESolver {
+    /// Performs one step of 4th-order Runge-Kutta integration
+    fn step(&mut self, theta: &[f64]) {
+        let y = self.state;
+        
+        // k1 = f(t, y)
+        let (k1_y1, k1_y2) = self.rhs(y, theta);
+        
+        // k2 = f(t + h/2, y + h*k1/2)
+        let y2_state = ODEState::new(
+            y.y1 + h * k1_y1 * 0.5,
+            y.y2 + h * k1_y2 * 0.5
+        );
+        let (k2_y1, k2_y2) = self.rhs(y2_state, theta);
+        
+        // ... (k3 and k4 calculations)
+        
+        // Update state
+        self.state.y1 += h * (k1_y1 + 2.0*k2_y1 + 2.0*k3_y1 + k4_y1) / 6.0;
+        self.state.y2 += h * (k1_y2 + 2.0*k2_y2 + 2.0*k3_y2 + k4_y2) / 6.0;
+        self.time += h;
+    }
+    
+    /// Right-hand side of the ODE system
+    fn rhs(&self, state: ODEState, theta: &[f64]) -> (f64, f64) {
+        let y1_dot = -(theta[0] + theta[2]) * state.y1 * state.y1;
+        let y2_dot = theta[0] * state.y1 * state.y1 - theta[1] * state.y2;
+        (y1_dot, y2_dot)
+    }
+}
+```
+
+### 3. Problem Definition
+
+The main optimization problem implements the `Problem` trait:
+
+```rust
+struct CatalyticCracking {
+    experimental_data: ExperimentalData,
+    integration_step_size: f64,
+}
+
+impl Problem for CatalyticCracking {
+    fn objective(&self, x: &Array1<f64>) -> Result<f64, EvaluationError> {
+        // Validate input dimension
+        if x.len() != 3 {
+            return Err(EvaluationError::InvalidInput(
+                format!("Expected 3 parameters (θ₁, θ₂, θ₃), got {}", x.len())
+            ));
+        }
+        
+        // Validate parameters - must be positive
+        for &param in x.iter() {
+            if param <= 0.0 {
+                return Err(EvaluationError::InvalidInput(
+                    "All reaction rate coefficients must be positive".to_string()
+                ));
+            }
+        }
+        
+        self.residual_sum_of_squares(x)
+    }
+    
+    fn variable_bounds(&self) -> Array2<f64> {
+        // All parameters must be positive with reasonable upper bounds
+        array![
+            [0.001, 100.0],  // θ₁: primary cracking rate
+            [0.001, 100.0],  // θ₂: secondary reaction rate  
+            [0.001, 100.0],  // θ₃: additional cracking rate
+        ]
+    }
+}
+```
+
+## Key Features
+
+### Robust ODE Integration
+
+The example includes sophisticated numerical integration with adaptive step sizing:
+
+```rust
+fn solve_to_times(&mut self, target_times: &[f64], theta: &[f64]) 
+    -> Result<(Vec<f64>, Vec<f64>), String> {
+    
+    while time_index < target_times.len() {
+        let target_time = target_times[time_index];
+        
+        // Integrate until we reach or exceed the target time
+        while self.time < target_time {
+            // Adjust step size if we would overshoot
+            if self.time + self.step_size > target_time {
+                let adjusted_step = target_time - self.time;
+                self.step_with_h(adjusted_step, theta);
+                break;
+            } else {
+                self.step(theta);
+            }
+        }
+        
+        // Record solution at target time
+        y1_results.push(self.state.y1);
+        y2_results.push(self.state.y2);
+        time_index += 1;
+    }
+    
+    Ok((y1_results, y2_results))
+}
+```
+
+### Error Handling and Validation
+
+The implementation includes comprehensive error handling:
+
+- **Parameter validation**: Ensures all reaction rates are positive
+- **Dimension checking**: Validates input parameter count
+- **Integration monitoring**: Detects numerical instabilities
+- **Physical constraints**: Enforces meaningful parameter bounds
+
+### Performance Optimization
+
+The ODE solver is optimized for performance:
+
+- **Efficient memory usage**: Pre-allocated result vectors
+- **Minimal allocations**: Reuses state objects during integration
+- **Adaptive stepping**: Prevents overshoot while maintaining accuracy
+
+## Running the Example
+
+### Setup
+
+Add the required dependencies to your `Cargo.toml`:
+
+```toml
+[dependencies]
+globalsearch = "0.2.0"
+ndarray = "0.16.1"
+```
+
+### Configuration
+
+The example uses COBYLA as the local solver since it handles bounds naturally:
+
+```rust
+use globalsearch::{
+    oqnlp::OQNLP,
+    types::OQNLPParams,
+};
+
+let params: OQNLPParams = OQNLPParams {
+    iterations: 100,
+    population_size: 300,  
+    wait_cycle: 15,
+    threshold_factor: 0.15,
+    distance_factor: 0.6,
+    seed: 0,
+    ..Default::default()
+};
+```
+
+### Execution
+
+```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let problem = CatalyticCracking::new();
+    let params = OQNLPParams { /* ... */ };
+    
+    let mut oqnlp: OQNLP<CatalyticCracking> = OQNLP::new(problem.clone(), params)?.verbose();
+    
+    println!("Starting optimization...");
+    let solution_set = oqnlp.run()?;
+    
+    // Analyze results
+    if let Some(best_solution) = solution_set.solutions.first() {
+        let theta_opt = &best_solution.point;
+        println!("Best Parameter Estimates:");
+        println!("θ₁ (primary cracking rate):     {:.6}", theta_opt[0]);
+        println!("θ₂ (secondary reaction rate):   {:.6}", theta_opt[1]);
+        println!("θ₃ (additional cracking rate):  {:.6}", theta_opt[2]);
+    }
+    
+    Ok(())
+}
+```
+
+## Expected Results
+
+### Benchmark Comparison
+
+The example compares results against the GAMS reference solution:
+
+| Parameter | GAMS Reference | globalsearch-rs | Difference   | Rel. Error (%) |
+|-----------|----------------|-----------------|--------------|----------------|
+| θ₁        | 11.847         | 11.848          | 0.000868     | 0.0073         |
+| θ₂        | 8.345          | 8.346           | 0.000519     | 0.0062         |
+| θ₃        | 1.001          | 1.000           | -0.000974    | -0.0973        |
+
+### Solution Quality
+
+- GAMS SSR: 0.00523660
+- globalsearch-rs SSR: 0.00523660
+
+The solutions are statistically equivalent.
+
+## Source Code
+
+The complete source code for this example is available in the [globalsearch-rs repository](https://github.com/GermanHeim/globalsearch-rs/blob/main/examples/catalytic_cracking.rs).
+
+To run the example:
+
+```bash
+git clone https://github.com/GermanHeim/globalsearch-rs.git
+cd globalsearch-rs
+cargo run --example catalytic_cracking
+```
+
+## References
+
+[^1]:
+    Dolan, E D, Moré, J J, and Munson, T S. "Benchmarking Optimization Software with COPS 2.0." Tech. rep., Mathematics and Computer Science Division, 2000.
+
+- Tjoa, I B, and Biegler, L T. "Simultaneous Solution and Optimization Strategies for Parameter Estimation of Differential-Algebraic Equations Systems." Ind. Eng. Chem. Res. 30 (1991), 376-385.

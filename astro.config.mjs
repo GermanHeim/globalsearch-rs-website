@@ -86,6 +86,10 @@ export default defineConfig({
               link: "/rust/running-an-optimization-problem/",
             },
             {
+              label: "🦀 Local Solver Builders",
+              link: "/rust/local-solver-builders/",
+            },
+            {
               label: "🦀 Checkpointing",
               link: "/rust/checkpointing/",
             },
@@ -93,6 +97,10 @@ export default defineConfig({
               label: "Examples",
               collapsed: true,
               items: [
+                {
+                  label: "🦀 Catalytic Cracking Parameter Estimation",
+                  link: "/rust/examples/catalytic-cracking/",
+                },
                 {
                   label: "Six-Hump Camel Function",
                   link: "/tutorials/",

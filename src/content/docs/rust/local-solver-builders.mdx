@@ -1,0 +1,56 @@
+---
+title: Local Solver Builders
+description: Comprehensive guide to configuring local solvers using the builder pattern in globalsearch-rs
+---
+
+import Latex from "../../../components/Latex.astro";
+
+The builder pattern in `globalsearch-rs` provides a type-safe, flexible way to configure local optimization solvers. Each local solver comes with its own builder that allows fine-tuned control over algorithm parameters while providing sensible defaults.
+
+## Builder Pattern Benefits
+
+The builder pattern offers several advantages for local solver configuration:
+
+- **Type Safety**: Compile-time validation of configuration parameters
+- **Default Values**: Sensible defaults for all parameters that work well for most problems
+- **Fluent Interface**: Chain method calls for readable configuration
+- **Flexibility**: Easy parameter customization without breaking changes
+- **Documentation**: Each parameter is well-documented with recommended values
+
+## Basic Usage Pattern
+
+All builders follow the same pattern:
+
+```rust
+use globalsearch::local_solver::builders::{LocalSolverConfig, COBYLABuilder};
+
+// Using default configuration
+let config = COBYLABuilder::default().build();
+
+// Using custom configuration
+let config = COBYLABuilder::default()
+    .max_iter(1000)
+    .initial_step_size(0.1)
+    .ftol_rel(1e-8)
+    .build();
+
+// Use in OQNLP parameters
+let params = OQNLPParams {
+    local_solver_config: config,
+    // ... other parameters
+};
+```
+
+You can also use the convenience methods on `LocalSolverConfig`:
+
+```rust
+use globalsearch::local_solver::builders::LocalSolverConfig;
+
+let config = LocalSolverConfig::cobyla()
+    .max_iter(1000)
+    .build();
+```
+
+The builder pattern in `globalsearch-rs` provides a powerful and flexible way to configure local solvers 
+for your specific optimization needs. Start with the defaults and gradually customize parameters 
+based on your problem characteristics and performance requirements.
