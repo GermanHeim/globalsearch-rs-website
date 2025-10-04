@@ -12,8 +12,8 @@ Make sure to include `globalsearch` and `ndarray` in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-globalsearch = "0.2.0"
-ndarray = "0.15.6"
+globalsearch = "0.3.0"
+ndarray = "0.16.1"
 ```
 
 ## Defining your Problem
