@@ -101,10 +101,6 @@ export default defineConfig({
                   label: "🦀 Catalytic Cracking Parameter Estimation",
                   link: "/rust/examples/catalytic-cracking/",
                 },
-                {
-                  label: "Six-Hump Camel Function",
-                  link: "/tutorials/",
-                },
               ],
             },
           ],
