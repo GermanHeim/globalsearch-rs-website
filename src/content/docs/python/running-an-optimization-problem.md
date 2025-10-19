@@ -37,7 +37,7 @@ def variable_bounds():
     # Define the bounds for each variable
     return [(-10, 10), (-10, 10)]
 
-problem = gs.Problem(objective=objective_function, variable_bounds=variable_bounds)
+problem = gs.PyProblem(objective=objective_function, variable_bounds=variable_bounds)
 ```
 
 In the example above, we define an objective function that computes the sum of squares of the variables and set the variable bounds to be between -10 and 10 for both variables.
@@ -83,7 +83,7 @@ def variable_bounds():
     # Define the bounds for each variable
     return [(-10, 10), (-10, 10)]
 
-problem = gs.Problem(objective=objective_function, variable_bounds=variable_bounds)
+problem = gs.PyProblem(objective=objective_function, variable_bounds=variable_bounds)
 params = gs.PyOQNLPParams(
  iterations=100,
  population_size=500,
@@ -95,3 +95,18 @@ params = gs.PyOQNLPParams(
 result = gs.optimize(problem, params, local_solver="COBYLA", seed=0)
 print(result)
 ```
+
+If everything is set up correctly, running the above code will execute the optimization process and print the following results:
+
+```text
+Solution Set
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total solutions: 1
+Best objective value: 0.00000000e0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Solution #1
+  Objective: 0.00000000e0
+  Parameters: [0.0, 0.0]
+```
+
+This output indicates that the optimization process has found a solution with an objective value of `0.0` at the parameters `[0.0, 0.0]`, which is the expected minimum for our defined objective function. This is a convex problem, so the global minimum is easily found.
