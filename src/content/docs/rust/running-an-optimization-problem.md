@@ -90,16 +90,22 @@ In the code above, we create a new instance of `OQNLP` with our problem and para
 Your complete code should look like this:
 
 ```rust
-use globalsearch::{OQNLP, problem::Problem, types::{OQNLPParams, LocalSolverType}};
+use globalsearch::{
+    local_solver::builders::NelderMeadBuilder,
+    oqnlp::OQNLP,
+    problem::Problem,
+    types::{EvaluationError, LocalSolverType, OQNLPParams, SolutionSet},
+};
 use ndarray::{Array1, Array2};
 
+#[derive(Clone)]
 struct MinimizeProblem {
     // Define your problem-specific fields here
     // if needed
 }
 
 impl Problem for MinimizeProblem {
-    fn objective(&self, x: &Array1<f64>) -> f64 {
+    fn objective(&self, x: &Array1<f64>) -> Result<f64, EvaluationError> {
         // Implement your objective function here
     }
 
@@ -110,26 +116,88 @@ impl Problem for MinimizeProblem {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-     let problem = MinimizeProblem;
-     let params: OQNLPParams = OQNLPParams {
-             iterations: 125,
-             wait_cycle: 10,
-             threshold_factor: 0.2,
-             distance_factor: 0.75,
-             population_size: 250,
-             local_solver_type: LocalSolverType::SteepestDescent,
-             local_solver_config: SteepestDescentBuilder::default().build(),
-             seed: 0,
-         };
+    let problem = MinimizeProblem;
+    let params: OQNLPParams = OQNLPParams {
+        iterations: 125,
+        wait_cycle: 10,
+        threshold_factor: 0.2,
+        distance_factor: 0.75,
+        population_size: 250,
+        local_solver_type: LocalSolverType::NelderMead,
+        local_solver_config: NelderMeadBuilder::default().build(),
+        seed: 0,
+    };
 
-     let mut optimizer: OQNLP<MinimizeProblem> = OQNLP::new(problem, params)?;
+    let mut optimizer: OQNLP<MinimizeProblem> = OQNLP::new(problem, params)?;
 
-     // OQNLP returns a solution set with the best solutions found
-     let solution_set: SolutionSet = optimizer.run()?;
-     println!("{}", solution_set)
+    // OQNLP returns a solution set with the best solutions found
+    let solution_set: SolutionSet = optimizer.run()?;
+    println!("{}", solution_set);
 
-     Ok(())
+    Ok(())
 }
+```
+
+For example, minimizing the sum of squares of two variables with bounds between -10 and 10 would look like this:
+
+```rust
+use globalsearch::{
+    local_solver::builders::NelderMeadBuilder,
+    oqnlp::OQNLP,
+    problem::Problem,
+    types::{EvaluationError, LocalSolverType, OQNLPParams, SolutionSet},
+};
+use ndarray::{Array1, Array2};
+
+#[derive(Clone)]
+struct MinimizeProblem {
+    dimension: usize,
+}
+
+impl Problem for MinimizeProblem {
+    fn objective(&self, x: &Array1<f64>) -> Result<f64, EvaluationError> {
+        Ok(x.iter().map(|xi| xi.powi(2)).sum())
+    }
+
+    fn variable_bounds(&self) -> Array2<f64> {
+        let num_vars = self.dimension;
+        Array2::from_shape_vec((num_vars, 2), vec![-10.0, 10.0].repeat(num_vars)).unwrap()
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let problem = MinimizeProblem { dimension: 2 };
+    let params: OQNLPParams = OQNLPParams {
+        iterations: 125,
+        wait_cycle: 10,
+        threshold_factor: 0.2,
+        distance_factor: 0.75,
+        population_size: 250,
+        local_solver_type: LocalSolverType::NelderMead,
+        local_solver_config: NelderMeadBuilder::default().build(),
+        seed: 0,
+    };
+
+    let mut optimizer: OQNLP<MinimizeProblem> = OQNLP::new(problem, params)?;
+
+    let solution_set: SolutionSet = optimizer.run()?;
+    println!("{}", solution_set);
+
+    Ok(())
+}
+```
+
+If you run the code above, you should see output similar to the following, indicating that the optimizer has found a solution close to the global minimum at (0, 0), which is trivially the minimum for this convex problem:
+
+```text
+━━━━━━━━━━━ Solution Set ━━━━━━━━━━━
+Total solutions: 1
+Best objective value: 0.00000000e0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━        
+Solution #1
+  Objective: 0.00000000e0
+  Parameters:
+    [0.00000000e0, 0.00000000e0]
 ```
 
 For more advanced usage, such as checkpointing, parallelism, or custom local solver configurations, refer to the respective documentation sections. Also, use the [API documentation](https://docs.rs/globalsearch/) for detailed information on available methods and types.
