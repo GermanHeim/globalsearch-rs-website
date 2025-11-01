@@ -175,11 +175,11 @@ export const f =
 
 <Latex formula={f} />
 
-The function has two global minima at approximately <Latex formula="\mathbf{x}^* = (0.0898, -0.7126)" inline /> and <Latex formula="\mathbf{x}^* = (-0.0898, 0.7126)" inline /> with a function value of <Latex formula="f(\mathbf{x}^*) \approx -1.0316" inline />.
+The function has two global minima at approximately <Latex formula="\mathbf{x}^*_{\pm} \approx (\pm 0.0898, \mp 0.7126)" inline /> with a function value of <Latex formula="f(\mathbf{x}^*_{\pm}) \approx -1.0316" inline />.
 
 The function is defined in the domain <Latex formula="x_1 \in [-3, 3]" inline /> and <Latex formula="x_2 \in [-2, 2]" inline />.
 
-In this case, we run the algorithm with a population size of 100 and 65 stage two iterations. The `distance_factor` is set to 0.75, the `wait_cycle` to 10, the `threshold_factor` to 0.5 and the `seed` to 0. The local solver used is `COBYLA` with the default configuration.
+In this case, we run the algorithm with a population size of 50 and 50 stage two iterations. The `distance_factor` is set to 0.75, the `wait_cycle` to 10, the `threshold_factor` to 0.5 and the `seed` to 50002099. The local solver used is `COBYLA` with the default configuration.
 
 ### Creating the Reference Set
 
