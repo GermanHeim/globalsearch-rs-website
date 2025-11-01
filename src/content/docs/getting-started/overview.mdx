@@ -192,7 +192,6 @@ The reference set is created using scatter search techniques. The following plot
 The algorithm then enters the stage two iterations, where it performs local optimization on the selected reference set points that have been identified as promising (i.e. those within the merit and distance thresholds). The following plots show the contour plot and surface of the function colored by the stage two iteration number.
 
 ![Stage Two Iterations Contour](../figures/sixhumpcamel_contour_zoomed.svg)
-![Stage Two Iterations Surface](../figures/sixhumpcamel_3d_surface_stage_two.svg)
 ![Stage Two Iterations Surface Zoomed](../figures/sixhumpcamel_3d_surface_zoomed_stage_two.svg)
 
 ### Convergence Analysis
@@ -201,9 +200,10 @@ The following plot shows the convergence of the best objective function value fo
 
 ![Convergence Plot](../figures/sixhumpcamel_convergence_analysis.svg)
 
-The Y-axis uses a symmetric logarithmic scale to better visualize the convergence behavior. The plot shows that the algorithm quickly finds a good solution and then improves it over time. The algorithm successfully finds both global minima of the Six-Hump Camel function.
+The plot shows that the algorithm first finds a local minima and then improves it over time. The algorithm successfully finds both global minima of the Six-Hump Camel function.
 
-The algorithm was run on a Windows 10 machine using a Ryzen 5 5500 processor with 16 GB of RAM @ 3200 MHz, using rust 1.87.0 with the `release` profile.
+The algorithm was run on a Windows 10 machine using a Ryzen 5 5500 processor with 16 GB of RAM @ 3200 MHz, using rust 1.91.0 with the `release` profile.
+The code to reproduce this example can be found in the [plots](https://github.com/GermanHeim/globalsearch-rs-website/tree/main/plots) folder of the GitHub repository.
 
 ## References
 

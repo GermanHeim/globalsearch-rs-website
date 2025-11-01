@@ -1,0 +1,10 @@
+[package]
+name = "sixhumpcamel_logging"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+globalsearch = { git = "https://github.com/GermanHeim/globalsearch-rs" }
+ndarray = { version = "0.16.1" }
