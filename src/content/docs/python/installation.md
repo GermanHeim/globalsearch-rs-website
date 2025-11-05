@@ -8,7 +8,7 @@ description: Learn about installing PyGlobalSearch
 To install `PyGlobalSearch`, you can add this to your `requirements.txt`:
 
 ```txt
-pyglobalsearch==0.3.0
+pyglobalsearch==0.4.0
 ```
 
 And then run `pip install -r requirements.txt`.
