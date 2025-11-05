@@ -140,6 +140,10 @@ export default defineConfig({
           label: "Contributing",
           link: "/contributing/",
         },
+        {
+          label: "Citing",
+          link: "/citing/",
+        },
       ],
       editLink: {
         baseUrl: "https://github.com/GermanHeim/globalsearch-rs-website/",
