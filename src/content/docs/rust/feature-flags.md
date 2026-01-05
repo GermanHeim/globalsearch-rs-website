@@ -10,6 +10,7 @@ using the features keyword of the `Cargo.toml` file.
 
 The following feature flags are available for the `globalsearch-rs` crate:
 
+- `argmin`: Enables `argmin` local solvers. This feature is enabled by default.
 - `rayon`: Enables parallel execution using Rayon. In debug builds or
   low workload scenarios, the overhead of thread management might reduce performance. For production
   builds, consider benchmarking with and without `rayon`. This feature is disabled by default.
