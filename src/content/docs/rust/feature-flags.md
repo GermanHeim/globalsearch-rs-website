@@ -27,7 +27,7 @@ The following feature flags are available for the `globalsearch-rs` crate:
 
 ```toml
 [dependencies]
-globalsearch = { version = "0.4.0", features = ["rayon"] }
+globalsearch = { version = "0.5.0", features = ["rayon"] }
 ```
 
 In the example above, the rayon feature flag is enabled for the `globalsearch-rs` crate. This will

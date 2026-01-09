@@ -9,7 +9,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-globalsearch = "0.4.0"
+globalsearch = "0.5.0"
 ```
 
 Alternatively, you can add the dependency directly from the command line: `cargo add globalsearch`
