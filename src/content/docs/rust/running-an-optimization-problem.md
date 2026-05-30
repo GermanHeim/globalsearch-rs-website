@@ -12,7 +12,7 @@ Make sure to include `globalsearch` and `ndarray` in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-globalsearch = "0.5.0"
+globalsearch = "0.6.0"
 ndarray = "0.16.1"
 ```
 
@@ -63,9 +63,8 @@ let params: OQNLPParams = OQNLPParams {
     iterations: 250,
     wait_cycle: 20,
     threshold_factor: 0.2,
-    distance_factor: 1,
+    distance_factor: 1.0,
     population_size: 500,
-    local_solver_type: LocalSolverType::COBYLA,
     seed: 0,
     ..Default::default()
 };
@@ -73,6 +72,11 @@ let params: OQNLPParams = OQNLPParams {
 
 You can also try the default parameters by using `OQNLPParams::default()`.
 Make sure to adjust the parameters according to your specific optimization problem and requirements.
+
+> **Note (v0.6.0):** `OQNLPParams` no longer has a `local_solver_type` field. The local
+> solver is now determined entirely by the `local_solver_config` you provide, and the
+> solver type is inferred from it (you can query it with `params.local_solver_type()`).
+> When omitted, as above, the default configuration uses COBYLA.
 
 ## Running the Optimization
 
@@ -94,7 +98,7 @@ use globalsearch::{
     local_solver::builders::NelderMeadBuilder,
     oqnlp::OQNLP,
     problem::Problem,
-    types::{EvaluationError, LocalSolverType, OQNLPParams, SolutionSet},
+    types::{EvaluationError, OQNLPParams, SolutionSet},
 };
 use ndarray::{Array1, Array2};
 
@@ -123,7 +127,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         threshold_factor: 0.2,
         distance_factor: 0.75,
         population_size: 250,
-        local_solver_type: LocalSolverType::NelderMead,
         local_solver_config: NelderMeadBuilder::default().build(),
         seed: 0,
     };
@@ -145,7 +148,7 @@ use globalsearch::{
     local_solver::builders::NelderMeadBuilder,
     oqnlp::OQNLP,
     problem::Problem,
-    types::{EvaluationError, LocalSolverType, OQNLPParams, SolutionSet},
+    types::{EvaluationError, OQNLPParams, SolutionSet},
 };
 use ndarray::{Array1, Array2};
 
@@ -173,7 +176,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         threshold_factor: 0.2,
         distance_factor: 0.75,
         population_size: 250,
-        local_solver_type: LocalSolverType::NelderMead,
         local_solver_config: NelderMeadBuilder::default().build(),
         seed: 0,
     };
