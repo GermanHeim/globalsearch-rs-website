@@ -21,26 +21,22 @@ This function supports using five different algorithms to solve the optimization
 - `sqp-legacy`
 - `active-set`
 
-However, `globalsearch-rs` uses the [`cobyla`](https://github.com/relf/cobyla) and the [`argmin`](https://github.com/argmin-rs/argmin) crate to solve
-the local optimization problems.
+`globalsearch-rs` uses the [Basin](https://github.com/jolars/basin) crate for every local solver:
 
-COBYLA is the only algorithm that supports constraints and bounds, while the other algorithms are
-unconstrained.
+- **Nonlinear constrained**: COBYLA (derivative-free) and SLSQP (gradient-based) support box bounds,
+  linear constraints, and nonlinear inequalities and equalities.
+- **Linear constrained**: Barrier handles linear inequalities and box bounds; Augmented Lagrangian
+  handles linear equalities without enforcing box bounds locally.
+- **Box constrained**: L-BFGS-B, bounded Nelder-Mead, and BOBYQA.
+- **Unconstrained**: L-BFGS, Gradient Descent, Trust Region, and Nelder-Mead.
 
-However, we also provide support for the **unconstrained** nonlinear programming solvers from the `argmin` crate to solve the local optimization problems. We currently support the following local solvers:
+Unconstrained solvers can return points outside variable bounds. Use `exclude_out_of_bounds` to
+filter those solutions. The same applies to Augmented Lagrangian; choose SLSQP when linear
+equalities and strict box bounds are both needed.
 
-- `COBYLA` (default)
-- `LBFGS`
-- `NelderMead`
-- `SteepestDescent`
-- `TrustRegion`
-- `NewtonCG`
-
-Support for more constrained solvers is planned when the `argmin` crate supports it. See
-[argmin's issue #137](https://github.com/argmin-rs/argmin/issues/137) for more information.
-
-Since unconstrained solvers can return solutions outside of variables bounds, we provide a function
-`exclude_out_of_bounds` to filter solutions out of bounds.
+See [Local Solvers](../../local-solvers) for derivative requirements and configuration, and the
+[constraint guide](../../rust/running-an-optimization-problem/#constraints) for sign conventions and
+global-search limitations for nonlinear equalities.
 
 ## Evaluation of the reference set
 
@@ -56,16 +52,16 @@ In MATLAB's `GlobalSearch`, the variable bounds are specified using the `lb` and
 However, unbounded components have artificial bounds imposed, where `lb = -1e4 + 1` and
 `ub = 1e4 + 1` [^3].
 
-In `globalsearch-rs`, the variable bounds are specified using the `variable_bounds` argument. The bounds are
-specified as an `Array2` of `f64`, where each row contains the lower and upper bounds of each
-variable. Not specifying bounds for a variable is not supported, so the user must specify bounds for
-all the variables. This is to ensure that the user is aware of the bounds of the variables and
-selects them appropriately.
+In `globalsearch-rs`, the variable bounds are specified using the `variable_bounds` argument. The
+bounds are specified as an `Array2` of `f64`, where each row contains the lower and upper bounds of
+each variable. Not specifying bounds for a variable is not supported, so the user must specify
+bounds for all the variables. This is to ensure that the user is aware of the bounds of the
+variables and selects them appropriately.
 
 ## Additional features
 
-`globalsearch-rs` provides additional features, including checkpointing and parallel execution.
-For more information, see the [feature flags documentation](../../rust/feature-flags).
+`globalsearch-rs` provides additional features, including checkpointing and parallel execution. For
+more information, see the [feature flags documentation](../../rust/feature-flags).
 
 Checkpointing is not available in the Python bindings.
 

@@ -33,5 +33,6 @@ are some key differences between the two:
 5. **Limitations in terms of features**: `PyGlobalSearch` does not expose all the features of
    `globalsearch-rs`, potentially limiting advanced users who require specific functionality. As of
    now, the focus is on providing a core set of tools that are most relevant for Python users. We
-   currently don't support checkpointing. Also,
-   for the COBYLA local solver, we only support a maximum of 1000 constraints.
+   currently don't support checkpointing. All local solvers are exposed in Python, including SLSQP,
+   Barrier, and Augmented Lagrangian, together with the linear and nonlinear constraint callbacks.
+   See [Local Solvers](../../local-solvers) for their requirements.

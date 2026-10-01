@@ -24,7 +24,7 @@ To use checkpointing, you need to enable the `checkpointing` feature:
 
 ```toml
 [dependencies]
-globalsearch = { version = "x.y.z", features = ["checkpointing"] }
+globalsearch = { version = "0.7.0", features = ["checkpointing"] }
 ```
 
 ## Basic Usage

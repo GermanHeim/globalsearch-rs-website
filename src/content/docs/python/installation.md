@@ -8,13 +8,13 @@ description: Learn about installing PyGlobalSearch
 To install `PyGlobalSearch`, you can add this to your `requirements.txt`:
 
 ```txt
-pyglobalsearch==0.6.0
+pyglobalsearch==0.7.0
 ```
 
 And then run `pip install -r requirements.txt`.
 
 Alternatively, you can add the dependency directly from the command line using
-`pip install pyglobalsearch`
+`pip install pyglobalsearch==0.7.0`
 
 ## uv
 
@@ -22,5 +22,5 @@ If you are using [uv](https://docs.astral.sh/uv/), you can add `pyglobalsearch` 
 to your `pyproject.toml`:
 
 ```bash
-uv add pyglobalsearch
+uv add pyglobalsearch==0.7.0
 ```

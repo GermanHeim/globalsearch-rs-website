@@ -1,17 +1,22 @@
 ---
 title: Local Solver Builders
-description: Comprehensive guide to configuring local solvers using the builder pattern in globalsearch-rs
+description:
+  Comprehensive guide to configuring local solvers using the builder pattern in globalsearch-rs
 ---
 
-import Latex from "../../../components/Latex.astro";
+The builder pattern in `globalsearch-rs` provides a type-safe, flexible way to configure local
+optimization solvers. Each local solver comes with its own builder that allows fine-tuned control
+over algorithm parameters while providing sensible defaults.
 
-The builder pattern in `globalsearch-rs` provides a type-safe, flexible way to configure local optimization solvers. Each local solver comes with its own builder that allows fine-tuned control over algorithm parameters while providing sensible defaults.
+All solvers use Basin and are available without feature flags. COBYLA is the default. Numeric
+configuration values are validated when a local solve starts; `.build()` returns a
+`LocalSolverConfig` directly.
 
 ## Builder Pattern Benefits
 
 The builder pattern offers several advantages for local solver configuration:
 
-- **Type Safety**: Compile-time validation of configuration parameters
+- **Type Safety**: Typed configuration methods, with numeric validation when solving
 - **Default Values**: Sensible defaults for all parameters that work well for most problems
 - **Fluent Interface**: Chain method calls for readable configuration
 - **Flexibility**: Easy parameter customization without breaking changes
@@ -23,6 +28,7 @@ All builders follow the same pattern:
 
 ```rust
 use globalsearch::local_solver::builders::{LocalSolverConfig, COBYLABuilder};
+use globalsearch::types::OQNLPParams;
 
 // Using default configuration
 let config = COBYLABuilder::default().build();
@@ -37,7 +43,7 @@ let config = COBYLABuilder::default()
 // Use in OQNLP parameters
 let params = OQNLPParams {
     local_solver_config: config,
-    // ... other parameters
+    ..OQNLPParams::default()
 };
 ```
 
@@ -51,6 +57,87 @@ let config = LocalSolverConfig::cobyla()
     .build();
 ```
 
-The builder pattern in `globalsearch-rs` provides a powerful and flexible way to configure local solvers 
-for your specific optimization needs. Start with the defaults and gradually customize parameters 
-based on your problem characteristics and performance requirements.
+The builder pattern in `globalsearch-rs` provides a powerful and flexible way to configure local
+solvers for your specific optimization needs. Start with the defaults and gradually customize
+parameters based on your problem characteristics and performance requirements.
+
+## Choosing a Builder
+
+Choose the solver through `OQNLPParams::local_solver_config`; its type is inferred from the
+configuration. You can query it with `params.local_solver_type()`.
+
+```rust
+use globalsearch::local_solver::builders::LBFGSBBuilder;
+use globalsearch::types::OQNLPParams;
+
+let params = OQNLPParams {
+    local_solver_config: LBFGSBBuilder::default()
+        .max_iter(500)
+        .tolerance_projected_grad(1e-8)
+        .history_size(10)
+        .build(),
+    ..OQNLPParams::default()
+};
+```
+
+| Rust builder                 | `LocalSolverConfig` helper | Python factory                     |
+| ---------------------------- | -------------------------- | ---------------------------------- |
+| `COBYLABuilder`              | `cobyla()`                 | `gs.builders.cobyla`               |
+| `LBFGSBuilder`               | `lbfgs()`                  | `gs.builders.lbfgs`                |
+| `GradientDescentBuilder`     | `gradient_descent()`       | `gs.builders.gradient_descent`     |
+| `TrustRegionBuilder`         | `trust_region()`           | `gs.builders.trust_region`         |
+| `NelderMeadBuilder`          | `nelder_mead()`            | `gs.builders.nelder_mead`          |
+| `LBFGSBBuilder`              | `lbfgsb()`                 | `gs.builders.lbfgsb`               |
+| `BoundedNelderMeadBuilder`   | `bounded_nelder_mead()`    | `gs.builders.bounded_nelder_mead`  |
+| `BOBYQABuilder`              | `bobyqa()`                 | `gs.builders.bobyqa`               |
+| `SLSQPBuilder`               | `slsqp()`                  | `gs.builders.slsqp`                |
+| `BarrierBuilder`             | `barrier()`                | `gs.builders.barrier`              |
+| `AugmentedLagrangianBuilder` | `augmented_lagrangian()`   | `gs.builders.augmented_lagrangian` |
+
+## Constrained Solvers
+
+SLSQP supports box bounds and linear and nonlinear equalities and inequalities. It requires an
+objective gradient and a constraint Jacobian when nonlinear constraints are present:
+
+```rust
+use globalsearch::local_solver::builders::SLSQPBuilder;
+
+let config = SLSQPBuilder::default()
+    .max_iter(1000)
+    .accuracy(1e-8)
+    .build();
+```
+
+Barrier handles linear inequalities and box bounds. Augmented Lagrangian handles linear equalities,
+but does not enforce box bounds during local optimization. Both require an objective gradient:
+
+```rust
+use globalsearch::local_solver::builders::{BarrierBuilder, AugmentedLagrangianBuilder};
+
+let barrier_config = BarrierBuilder::default()
+    .duality_gap_tol(1e-8)
+    .inner_max_iter(100)
+    .build();
+
+let equality_config = AugmentedLagrangianBuilder::default()
+    .feasibility_tol(1e-8)
+    .inner_max_iter(100)
+    .build();
+```
+
+See [Local Solvers](../../local-solvers) for every parameter, its default, and the derivative and
+constraint requirements. The [constraint guide](../running-an-optimization-problem/#constraints)
+shows the callback conventions used by these solvers.
+
+## Migrating Older Configurations
+
+Remove `Basin` from Rust builder and configuration variant names, and remove `basin_` from Python
+factories and solver names. For example, `BasinLBFGSBBuilder` becomes `LBFGSBBuilder` and
+`basin_lbfgsb` becomes `lbfgsb`. `SteepestDescentBuilder` is replaced by `GradientDescentBuilder`;
+Newton-CG is no longer available.
+
+The former argmin configuration fields have also changed. Custom line searches, `l1_coefficient`,
+`sd_tolerance`, and custom Nelder-Mead coefficients are no longer exposed. Use `tolerance_simplex`
+and `tolerance_cost` for Nelder-Mead stopping. Optional tolerances accept `None` to disable a test
+or zero to request an exact threshold. Trust region uses
+`.method(TrustRegionRadiusMethod::Steihaug)` or `.method(TrustRegionRadiusMethod::Cauchy)`.

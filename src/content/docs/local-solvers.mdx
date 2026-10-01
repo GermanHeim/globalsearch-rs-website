@@ -1,167 +1,280 @@
 ---
 title: Local Solvers
-description: Local solvers are algorithms that find the local minimum of a function.
+description: Choose and configure local optimization algorithms, derivatives, and constraints.
 ---
 
-import Latex from "../../components/Latex.astro";
+All local solvers in `globalsearch-rs` use [Basin](https://github.com/jolars/basin). They refine
+candidate points from scatter search. All eleven solvers are available in Rust and Python.
+COBYLA is the default.
 
-:::note[Bounds]
-The only local solver that supports constraints and bounds is COBYLA.
-This is the recommended local solver. 
+:::note[Bounds and constraints]
 
-Other solvers can return solutions out of bounds.
-You can handle this by using the `exclude_out_of_bounds` option in the `OQNLP` struct.
+COBYLA, L-BFGS-B, bounded Nelder-Mead, BOBYQA, SLSQP, and Barrier enforce variable bounds during
+local optimization. Other solvers use bounds during scatter search and can return points outside
+them. Use `exclude_out_of_bounds` to filter those solutions. Augmented Lagrangian handles linear
+equalities but does not enforce box bounds locally; use SLSQP when both are required.
+
+COBYLA and SLSQP accept nonlinear inequalities and equalities. Barrier handles linear inequalities;
+Augmented Lagrangian handles linear equalities. The remaining seven solvers reject nonempty linear
+or nonlinear constraint blocks.
+
 :::
-
-Local solvers are algorithms that find the local minimum of a function. In `globalsearch-rs`, we use the [`cobyla`](https://github.com/relf/cobyla)
-crate and the [`argmin`](https://github.com/argmin-rs/argmin) crate to provide local solvers. The local
-solvers are used to refine the points in the reference set.
 
 ## Available Local Solvers
 
-The following local solvers are available in `globalsearch-rs`:
+Every problem implements `objective` and `variable_bounds`. Additional requirements are listed
+below.
 
-- COBYLA (default)
-- L-BFGS
-- Nelder-Mead
-- Steepest Descent
-- Trust Region
-- Newton-CG
+| Solver               | Rust builder                 | Python factory / solver name | Derivatives                                          | Local constraints                                            |
+| -------------------- | ---------------------------- | ---------------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| COBYLA (default)     | `COBYLABuilder`              | `cobyla`                     | None                                                 | Box bounds, linear and nonlinear inequalities and equalities |
+| L-BFGS               | `LBFGSBuilder`               | `lbfgs`                      | Gradient                                             | None                                                         |
+| Gradient Descent     | `GradientDescentBuilder`     | `gradient_descent`           | Gradient                                             | None                                                         |
+| Trust Region         | `TrustRegionBuilder`         | `trust_region`               | Gradient and Hessian                                 | None                                                         |
+| Nelder-Mead          | `NelderMeadBuilder`          | `nelder_mead`                | None                                                 | None                                                         |
+| L-BFGS-B             | `LBFGSBBuilder`              | `lbfgsb`                     | Gradient                                             | Box bounds                                                   |
+| Bounded Nelder-Mead  | `BoundedNelderMeadBuilder`   | `bounded_nelder_mead`        | None                                                 | Box bounds                                                   |
+| BOBYQA               | `BOBYQABuilder`              | `bobyqa`                     | None                                                 | Box bounds                                                   |
+| SLSQP                | `SLSQPBuilder`               | `slsqp`                      | Gradient; nonlinear constraint Jacobian when present | Box bounds, linear and nonlinear inequalities and equalities |
+| Barrier              | `BarrierBuilder`             | `barrier`                    | Gradient                                             | Box bounds and linear inequalities                           |
+| Augmented Lagrangian | `AugmentedLagrangianBuilder` | `augmented_lagrangian`       | Gradient                                             | Linear equalities                                            |
 
-## Requirements Comparison
+```rust
+use globalsearch::local_solver::builders::LBFGSBBuilder;
+use globalsearch::types::OQNLPParams;
 
-Below is a comparison of the requirements for each local solver:
+let params = OQNLPParams {
+    local_solver_config: LBFGSBBuilder::default()
+        .max_iter(500)
+        .tolerance_projected_grad(1e-8)
+        .history_size(10)
+        .build(),
+    ..OQNLPParams::default()
+};
+```
 
-| Solver           | Gradient | Hessian | Line Search | Notes                                 |
-| ---------------- | -------- | ------- | ----------- | ------------------------------------- |
-| COBYLA           | No       | No      | No          | Derivative-free, constraints support  |
-| L-BFGS           | Yes      | No      | Yes         | Optional L1-regularization via OWL-QN |
-| Nelder-Mead      | No       | No      | No          | Derivative-free                       |
-| Steepest Descent | Yes      | No      | Yes         | First-order derivatives               |
-| Trust Region     | Yes      | Yes     | No          | Uses trust-region radius updates      |
-| Newton-CG        | Yes      | Yes     | Yes         | Conjugate-gradient Newton steps       |
+```python
+import pyglobalsearch as gs
+
+config = gs.builders.lbfgsb(max_iter=500, tolerance_projected_grad=1e-8)
+result = gs.optimize(problem, params, local_solver_config=config)
+# Or select default settings by name:
+result = gs.optimize(problem, params, local_solver="bobyqa")
+```
+
+Python solver names are case-insensitive and accept underscores, hyphens, or compact spelling. When
+both a name and configuration are supplied, they must select the same solver. Python configuration
+classes use names such as `gs.builders.PyLBFGS` and `gs.builders.PySLSQP`.
+
+See [Local Solver Builders](./rust/local-solver-builders) for configuration examples, and
+[Running an Optimization Problem](./rust/running-an-optimization-problem/#constraints) for the
+constraint callbacks and sign conventions.
 
 ## Detailed Overview of Each Solver
 
+Configuration values are validated when a local solve starts. Except for COBYLA, `max_iter` counts
+executor iterations, with separate inner iteration budgets for Barrier and Augmented Lagrangian.
+Initialization and line searches can evaluate the objective multiple times per iteration.
+
+Optional tolerances accept `None` to disable a test or zero to request an exact threshold. Gradient
+tolerances default to `1e-6` (Euclidean norm for unconstrained methods, projected-gradient infinity
+norm for L-BFGS-B). L-BFGS, Gradient Descent, and L-BFGS-B use More-Thuente line search.
+
 ### COBYLA
+
 The COBYLA (Constrained Optimization BY Linear Approximation) algorithm is a derivative-free
 optimization method that is used to find the local minimum of a function. It is particularly useful
 for problems with nonlinear constraints. The algorithm works by iteratively constructing linear
-approximations of the objective function and constraints.
-This algorithm requires that the `Problem` struct implements the `objective` method. If the problem
-has constraints, the `Problem` struct must also implement the `constraints` method.
+approximations of the objective function and constraints. This algorithm requires that the `Problem`
+struct implements the `objective` method. If the problem has constraints, implement the appropriate
+constraint methods listed in the constraint guide.
 
-COBYLA is the only local solver in `globalsearch-rs` that supports constraints and bounds.
+COBYLA uses Basin's implementation (based on [PRIMA](https://github.com/libprima/prima)). It is one
+of two local solvers in `globalsearch-rs` that supports nonlinear constraints, and it enforces
+variable bounds during local optimization.
+
+Trial points are projected into bounds before invoking user callbacks, so objective and constraint
+functions can retain hard domain restrictions. `max_iter` is an objective-evaluation budget,
+including during simplex initialization.
 
 #### Parameters for COBYLA
 
-| Parameter          | Type    | Description                                      | Default        |
-| ------------------ | ------- | ------------------------------------------------ | -------------- |
-| `max_iter`         | `usize` | Maximum number of iterations                     | `300`          |
-| `initial_step_size`| `f64`   | Initial step size                                | `1.0`          |
-| `ftol_rel`         | `f64`   | Tolerance for the objective function (relative)  | `1e-6`         |
-| `ftol_abs`         | `f64`   | Tolerance for the objective function (absolute)  | `1e-8`         |
-| `xtol_rel`         | `f64`   | Tolerance for the solution (relative)            | `0` (Disabled) |
-| `xtol_abs`         | `f64`   | Tolerance for the solution (absolute)            | `0` (Disabled) |
+| Parameter           | Type       | Description                                                                                                                                                 | Default          |
+| ------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `max_iter`          | `u64`      | Maximum number of objective evaluations                                                                                                                     | `300`            |
+| `initial_step_size` | `f64`      | Initial trust-region radius; must be finite and positive                                                                                                    | `0.5`            |
+| `ftol_rel`          | `f64`      | Relative function tolerance, checked at trust-region reductions (nonpositive disables)                                                                      | `1e-6`           |
+| `ftol_abs`          | `f64`      | Absolute function tolerance, checked at trust-region reductions (nonpositive disables)                                                                      | `1e-8`           |
+| `xtol_rel`          | `f64`      | Relative parameter tolerance; contributes `xtol_rel * initial_step_size` to the final radius (nonpositive disables)                                         | `0` (Disabled)   |
+| `xtol_abs`          | `Vec<f64>` | Per-variable absolute tolerances; largest positive entry contributes to the final radius. Must contain one entry per variable when nonempty; empty disables | Empty (Disabled) |
 
+The final trust-region radius is the maximum of `xtol_rel * initial_step_size`, the positive entries
+in `xtol_abs`, and a numerical floor of `max(sqrt(EPSILON) * initial_step_size, MIN_POSITIVE)`. This
+floor applies even when parameter tolerances are disabled. Function tolerances are checked at
+changes in the trust-region radius to avoid stopping while COBYLA is improving its interpolation
+geometry.
 
 ### L-BFGS
 
-The L-BFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno) algorithm is a quasi-Newton method that
-is used to find the local minimum of a function. It is a popular algorithm for large-scale
-optimization problems and is known for its efficiency and effectiveness. It also provides L1
-regularization via the Orthant-Wise Limited-memory Quasi-Newton (OWL-QN) method.
+Unconstrained Basin L-BFGS with the default More-Thuente line search. Requires `objective` and
+`gradient`. Cost-change stopping is disabled by default. Rust builder: `LBFGSBuilder`. Python
+factory: `gs.builders.lbfgs`, class `gs.builders.PyLBFGS`, solver name `lbfgs`.
 
-This algorithm requires that the `Problem` struct implements the `objective` and `gradient` methods.
-It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
-to find the step size for the L-BFGS algorithm.
+| Parameter        | Type          | Description                                           | Default           |
+| ---------------- | ------------- | ----------------------------------------------------- | ----------------- |
+| `max_iter`       | `u64`         | Maximum number of Basin executor iterations           | `1000`            |
+| `tolerance_grad` | `Option<f64>` | Absolute Euclidean gradient tolerance                 | `1e-6`            |
+| `tolerance_cost` | `Option<f64>` | Absolute change in cost between iterates              | `None` (Disabled) |
+| `history_size`   | `usize`       | Number of correction pairs retained; must be positive | `10`              |
 
-#### Parameters for L-BFGS
+### Gradient Descent
 
-| Parameter            | Type               | Description                                                                                                                                                       | Default                       |
-| -------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `max_iter`           | `usize`            | The maximum number of iterations to perform.                                                                                                                      | `300`                         |
-| `tolerance_grad`     | `f64`              | The gradient tolerance.                                                                                                                                           | `sqrt(EPSILON)`               |
-| `tolerance_cost`     | `f64`              | The cost tolerance.                                                                                                                                               | `EPSILON`                     |
-| `history_size`       | `usize`            | Number of past updates to the position (<Latex formula="x" inline />) and gradient (<Latex formula="\nabla f" inline />) used to approximate the inverse Hessian. | `10`                          |
-| `l1_coefficient`     | `Option<f64>`      | L1 regularization coefficient (OWL-QN) to penalize high-value coefficients.                                                                                       | `None`                        |
-| `line_search_params` | `LineSearchParams` | Line search parameters.                                                                                                                                           | `LineSearchParams::default()` |
+Unconstrained Basin gradient descent with the default More-Thuente line search and no momentum.
+Requires `objective` and `gradient`. Cost-change stopping is disabled by default. Rust builder:
+`GradientDescentBuilder`. Python factory: `gs.builders.gradient_descent`, solver name
+`gradient_descent`.
 
-### Nelder-Mead
-
-The Nelder-Mead algorithm is a simplex-based optimization method that is used to find the local
-minimum of a function. It is a derivative-free optimization method that is suitable for non-smooth
-functions. The algorithm is simple to implement and is widely used in practice.
-
-This algorithm requires that the `Problem` struct implements the `objective` method.
-
-#### Parameters for Nelder-Mead
-
-| Parameter       | Type    | Description                                             | Default   |
-| --------------- | ------- | ------------------------------------------------------- | --------- |
-| `simplex_delta` | `f64`   | Step size for generating the simplex from a given point | `0.1`     |
-| `sd_tolerance`  | `f64`   | Sample standard deviation tolerance                     | `EPSILON` |
-| `max_iter`      | `usize` | Maximum number of iterations                            | `300`     |
-| `alpha`         | `f64`   | Reflection coefficient                                  | `1.0`     |
-| `gamma`         | `f64`   | Expansion coefficient                                   | `2.0`     |
-| `rho`           | `f64`   | Contraction coefficient                                 | `0.5`     |
-| `sigma`         | `f64`   | Shrinkage coefficient                                   | `0.5`     |
-
-### Steepest Descent
-
-The Steepest Descent algorithm is a first-order optimization method that is used to find the local
-minimum of a function. It is based on the idea of moving in the direction of the steepest descent of
-the function. The algorithm is simple to implement and is suitable for smooth functions.
-
-This algorithm requires that the `Problem` struct implements the `objective` and `gradient` methods.
-
-It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
-to find the step size for the Steepest Descent algorithm.
-
-#### Parameters for Steepest Descent
-
-| Parameter            | Type               | Description                  | Default                       |
-| -------------------- | ------------------ | ---------------------------- | ----------------------------- |
-| `max_iter`           | `usize`            | Maximum number of iterations | `300`                         |
-| `line_search_params` | `LineSearchParams` | Line search parameters       | `LineSearchParams::default()` |
+| Parameter        | Type          | Description                                 | Default           |
+| ---------------- | ------------- | ------------------------------------------- | ----------------- |
+| `max_iter`       | `u64`         | Maximum number of Basin executor iterations | `1000`            |
+| `tolerance_grad` | `Option<f64>` | Absolute Euclidean gradient tolerance       | `1e-6`            |
+| `tolerance_cost` | `Option<f64>` | Absolute change in cost between iterates    | `None` (Disabled) |
 
 ### Trust Region
 
-The Trust Region algorithm is a popular optimization method that is used to find the local minimum
-of a function. It is based on the idea of approximating the objective function within a local region
-and iteratively refining the solution. The algorithm is particularly effective for non-convex
-functions and is widely used in practice.
+Unconstrained Basin trust-region optimization using the supplied gradient and Hessian. Requires
+`objective`, `gradient`, and `hessian`. Rust builder: `TrustRegionBuilder`. Python factory:
+`gs.builders.trust_region`, solver name `trust_region`.
 
-This algorithm requires that the `Problem` struct implements the `objective`, `gradient`, and
-`hessian` methods.
+| Parameter                    | Type                      | Description                                              | Default    |
+| ---------------------------- | ------------------------- | -------------------------------------------------------- | ---------- |
+| `max_iter`                   | `u64`                     | Maximum number of Basin executor iterations              | `1000`     |
+| `tolerance_grad`             | `Option<f64>`             | Absolute Euclidean gradient tolerance                    | `1e-6`     |
+| `trust_region_radius_method` | `TrustRegionRadiusMethod` | Subproblem method (`Steihaug` or `Cauchy`)               | `Steihaug` |
+| `radius`                     | `f64`                     | Positive initial trust-region radius                     | `1.0`      |
+| `max_radius`                 | `f64`                     | Maximum trust-region radius, at least the initial radius | `100.0`    |
+| `eta`                        | `f64`                     | Step acceptance threshold, in `[0, 0.25)`                | `0.125`    |
 
-#### Parameters for Trust Region
+### Nelder-Mead
 
-| Parameter                    | Type                      | Description                   | Default  |
-| ---------------------------- | ------------------------- | ----------------------------- | -------- |
-| `trust_region_radius_method` | `TrustRegionRadiusMethod` | Trust region radius method    | `Cauchy` |
-| `radius`                     | `f64`                     | Initial trust region radius   | `1.0`    |
-| `max_radius`                 | `f64`                     | Maximum trust region radius   | `100.0`  |
-| `eta`                        | `f64`                     | Trust region update parameter | `0.125`  |
+Unconstrained Basin Nelder-Mead with standard coefficients. Derivative-free; requires only
+`objective`. When both tolerances are enabled, both the simplex-size and simplex-cost tests must
+pass (AND). Rust builder: `NelderMeadBuilder`. Python factory: `gs.builders.nelder_mead`, solver
+name `nelder_mead`.
 
-### Newton-CG
+| Parameter           | Type          | Description                                                   | Default |
+| ------------------- | ------------- | ------------------------------------------------------------- | ------- |
+| `max_iter`          | `u64`         | Maximum number of Basin executor iterations                   | `1000`  |
+| `simplex_delta`     | `f64`         | Positive absolute coordinate step for the initial simplex     | `0.1`   |
+| `tolerance_simplex` | `Option<f64>` | Maximum simplex distance from its best vertex (infinity norm) | `1e-6`  |
+| `tolerance_cost`    | `Option<f64>` | Maximum absolute cost difference from the best simplex vertex | `1e-8`  |
 
-The Newton-CG (Newton-Conjugate Gradient) algorithm is a second-order optimization method that is
-used to find the local minimum of a function. It combines the Newton's method with the conjugate
-gradient method to efficiently handle large-scale optimization problems. The algorithm is
-particularly effective for non-linear optimization problems and is widely used in practice.
+### L-BFGS-B
 
-This algorithm requires that the `Problem` struct implements the `objective`, `gradient`, and
-`hessian` methods.
+Box-constrained Basin L-BFGS-B with the default More-Thuente line search. Enforces variable bounds
+during local search. Requires `objective` and `gradient`. Cost-change stopping is disabled by
+default. Rust builder: `LBFGSBBuilder`. Python factory: `gs.builders.lbfgsb`, class
+`gs.builders.PyLBFGSB`, solver name `lbfgsb`.
 
-It also requires a `linesearch` method to be implemented in the `OQNLPParams` struct, which is used
-to find the step size for the Newton-CG algorithm.
+| Parameter                  | Type          | Description                                           | Default           |
+| -------------------------- | ------------- | ----------------------------------------------------- | ----------------- |
+| `max_iter`                 | `u64`         | Maximum number of Basin executor iterations           | `1000`            |
+| `tolerance_projected_grad` | `Option<f64>` | Absolute projected-gradient infinity-norm tolerance   | `1e-6`            |
+| `tolerance_cost`           | `Option<f64>` | Absolute change in cost between iterates              | `None` (Disabled) |
+| `history_size`             | `usize`       | Number of correction pairs retained; must be positive | `10`              |
 
-#### Parameters for Newton-CG
+### Bounded Nelder-Mead
 
-| Parameter             | Type               | Description                          | Default                       |
-| --------------------- | ------------------ | ------------------------------------ | ----------------------------- |
-| `max_iter`            | `usize`            | Maximum number of iterations         | `300`                         |
-| `curvature_threshold` | `f64`              | Curvature threshold                  | `0.0`                         |
-| `tolerance`           | `f64`              | Tolerance for the objective function | `EPSILON`                     |
-| `line_search_params`  | `LineSearchParams` | Line search parameters               | `LineSearchParams::default()` |
+Box-constrained Basin Nelder-Mead with projected trial vertices and standard coefficients. Enforces
+variable bounds during local search. Derivative-free; requires only `objective`. Infeasible starting
+points are projected before callbacks, and the initial simplex is built toward the box interior;
+projection can still collapse vertices during later steps. Rust builder: `BoundedNelderMeadBuilder`.
+Python factory: `gs.builders.bounded_nelder_mead`, solver name `bounded_nelder_mead`.
+
+| Parameter           | Type          | Description                                                   | Default |
+| ------------------- | ------------- | ------------------------------------------------------------- | ------- |
+| `max_iter`          | `u64`         | Maximum number of Basin executor iterations                   | `1000`  |
+| `simplex_delta`     | `f64`         | Positive absolute coordinate step for the initial simplex     | `0.1`   |
+| `tolerance_simplex` | `Option<f64>` | Maximum simplex distance from its best vertex (infinity norm) | `1e-6`  |
+| `tolerance_cost`    | `Option<f64>` | Maximum absolute cost difference from the best simplex vertex | `1e-8`  |
+
+### BOBYQA
+
+Box-constrained Basin BOBYQA. Enforces variable bounds during local search. Derivative-free;
+requires only `objective`. Basin reduces the radii automatically for narrow boxes. Rust builder:
+`BOBYQABuilder`. Python factory: `gs.builders.bobyqa`, solver name `bobyqa`.
+
+| Parameter              | Type            | Description                                                             | Default |
+| ---------------------- | --------------- | ----------------------------------------------------------------------- | ------- |
+| `max_iter`             | `u64`           | Maximum number of Basin executor iterations                             | `1000`  |
+| `initial_radius`       | `f64`           | Positive initial trust-region radius, larger than the final radius      | `1.0`   |
+| `final_radius`         | `f64`           | Positive final trust-region radius                                      | `1e-6`  |
+| `interpolation_points` | `Option<usize>` | Interpolation-set size in `[2n+1, (n+1)(n+2)/2]`; `None` selects `2n+1` | `None`  |
+
+### SLSQP
+
+Sequential Least-Squares Programming is a gradient-based solver for smooth problems with box bounds
+and mixed linear and nonlinear constraints. Implement `gradient` and, when nonlinear constraints are
+present, `constraint_jacobian`. Jacobian rows contain nonlinear equalities first, then nonlinear
+inequalities; columns correspond to variables. Differentiate the public inequality convention
+directly (`g(x) >= 0`); the adapter converts signs internally. Linear constraint derivatives come
+from `A`.
+
+Rust builder: `SLSQPBuilder`. Python factory: `gs.builders.slsqp`.
+
+| Parameter             | Type            | Description                                                     | Default                                              |
+| --------------------- | --------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| `max_iter`            | `u64`           | Maximum outer SLSQP iterations                                  | `1000`                                               |
+| `accuracy`            | `Option<f64>`   | Kraft composite accuracy tolerance; finite and nonnegative      | `1e-6`                                               |
+| `max_subproblem_iter` | `Option<usize>` | Positive NNLS active-set iteration limit for each QP subproblem | `None` (Basin default: three times the column count) |
+
+A nonlinear-infeasible starting point is accepted by the local solver. The global scatter-search
+stage still screens candidate feasibility. See the
+[mixed-constraint example](https://github.com/GermanHeim/globalsearch-rs/blob/main/examples/slsqp_mixed_constraints.rs).
+
+### Barrier
+
+The log-barrier method handles `linear_inequalities` (`A x <= b`) and box bounds, using a BFGS inner
+solver with backtracking line search. It requires `gradient` and at least one linear inequality row,
+and rejects equality and nonlinear constraint blocks. Phase I searches for a strictly feasible point
+when the local starting point is infeasible.
+
+Rust builder: `BarrierBuilder`. Python factory: `gs.builders.barrier`.
+
+| Parameter         | Type  | Description                                                                              | Default |
+| ----------------- | ----- | ---------------------------------------------------------------------------------------- | ------- |
+| `max_iter`        | `u64` | Maximum outer barrier iterations                                                         | `100`   |
+| `mu0`             | `f64` | Positive initial barrier parameter                                                       | `1.0`   |
+| `reduction`       | `f64` | Barrier parameter divisor per outer iteration; greater than one                          | `10.0`  |
+| `duality_gap_tol` | `f64` | Positive stopping threshold for `m * mu`, where `m` is the number of linear inequalities | `1e-8`  |
+| `inner_max_iter`  | `u64` | Positive iteration budget for each inner solve                                           | `50`    |
+
+### Augmented Lagrangian
+
+This method handles `linear_equalities` (`A x = b`) through multiplier and penalty updates. It
+requires `gradient` and at least one linear equality row, and rejects linear inequalities and
+nonlinear constraint blocks. Local starting points may be infeasible. Variable bounds are not
+enforced during local optimization; use SLSQP for linear equalities with strict box bounds.
+
+Rust builder: `AugmentedLagrangianBuilder`. Python factory: `gs.builders.augmented_lagrangian`.
+
+| Parameter              | Type  | Description                                                        | Default |
+| ---------------------- | ----- | ------------------------------------------------------------------ | ------- |
+| `max_iter`             | `u64` | Maximum outer iterations                                           | `100`   |
+| `rho0`                 | `f64` | Positive initial penalty parameter                                 | `10.0`  |
+| `rho_increase`         | `f64` | Penalty growth factor when feasibility stalls; greater than one    | `10.0`  |
+| `feasibility_decrease` | `f64` | Required feasibility-decrease ratio, strictly between zero and one | `0.25`  |
+| `feasibility_tol`      | `f64` | Positive stopping threshold for the equality residual norm         | `1e-8`  |
+| `inner_max_iter`       | `u64` | Positive iteration budget for each inner solve                     | `50`    |
+
+SLSQP, Barrier, and Augmented Lagrangian require Basin 1.13.0 or later, already specified by the
+crate. See the [Basin API docs](https://docs.rs/basin/1.13.0/basin/) and
+[`LocalSolverType`](https://docs.rs/globalsearch/latest/globalsearch/types/enum.LocalSolverType.html).
+
+:::caution[Checkpoint compatibility]
+
+Checkpoints from before the removal of argmin cannot be resumed with the current solver encoding.
+Adding SLSQP, Barrier, and Augmented Lagrangian preserves the encoding of the eight original
+Basin-only variants. See [Checkpointing](./rust/checkpointing) for details.
+
+:::

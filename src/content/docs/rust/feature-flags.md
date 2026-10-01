@@ -8,12 +8,11 @@ using the features keyword of the `Cargo.toml` file.
 
 ## Available feature flags
 
-The following feature flags are available for the `globalsearch-rs` crate:
+The following optional feature flags are available for the `globalsearch-rs` crate:
 
-- `argmin`: Enables `argmin` local solvers. This feature is enabled by default.
-- `rayon`: Enables parallel execution using Rayon. In debug builds or
-  low workload scenarios, the overhead of thread management might reduce performance. For production
-  builds, consider benchmarking with and without `rayon`. This feature is disabled by default.
+- `rayon`: Enables parallel execution using Rayon. In debug builds or low workload scenarios, the
+  overhead of thread management might reduce performance. For production builds, consider
+  benchmarking with and without `rayon`. This feature is disabled by default.
 - `checkpointing`: Enables checkpointing of the algorithm state to allow resuming from a previous
   state. This is useful for long-running computations that may need to be interrupted and resumed
   later. For more information, please read the [Checkpointing](../checkpointing) documentation. This
@@ -27,8 +26,17 @@ The following feature flags are available for the `globalsearch-rs` crate:
 
 ```toml
 [dependencies]
-globalsearch = { version = "0.6.0", features = ["rayon"] }
+globalsearch = { version = "0.7.0", features = ["rayon"] }
 ```
 
 In the example above, the rayon feature flag is enabled for the `globalsearch-rs` crate. This will
 enable the rayon feature of the crate.
+
+:::note[Checkpoint compatibility]
+
+Checkpoints written before the removal of argmin are incompatible with the current solver encoding.
+SLSQP, Barrier, and Augmented Lagrangian were appended after the eight original Basin-only solver
+variants, preserving the encoding of those eight variants. See [Checkpointing](../checkpointing) for
+details.
+
+:::
